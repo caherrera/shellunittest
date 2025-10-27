@@ -1,0 +1,231 @@
+name: CI, Auto-tag and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  linux-distros-matrix:
+    name: Bash syntax (Linux distros: ${{ matrix.image }})
+    if: startsWith(github.ref, 'refs/heads/')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: alpine:3.19
+            install: apk add --no-cache bash git
+            shell: bash
+          - image: debian:stable-slim
+            install: apt-get update && apt-get install -y --no-install-recommends bash git && rm -rf /var/lib/apt/lists/*
+            shell: bash
+          - image: ubuntu:22.04
+            install: apt-get update && apt-get install -y --no-install-recommends bash git && rm -rf /var/lib/apt/lists/*
+            shell: bash
+          - image: rockylinux:9
+            install: dnf -y install bash git && dnf clean all
+            shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List shell files
+        id: list_files
+        run: |
+          set -euo pipefail
+          git ls-files '*.sh' > shell_files.txt || true
+          echo "count=$(wc -l < shell_files.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Run syntax check in ${{ matrix.image }}
+        if: steps.list_files.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          docker pull "${{ matrix.image }}"
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace:ro" \
+            -w /workspace \
+            "${{ matrix.image }}" sh -lc '
+              set -euo pipefail
+              # install bash and git (for alpine, debian/ubuntu, rocky)
+              ${{ matrix.install }} >/dev/null 2>&1 || { echo "Install step failed"; exit 1; }
+              echo "Bash version inside container:" && bash --version | head -n1
+              rc=0
+              while IFS= read -r f; do
+                echo "Checking syntax with bash -n: $f"
+                bash -n "$f" || rc=$?
+              done < shell_files.txt
+              exit $rc
+            '
+  linux-bash-matrix:
+    name: Bash syntax (Linux ${{ matrix.bash }})
+    if: startsWith(github.ref, 'refs/heads/')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        bash: ["4.4", "5.0", "5.1", "5.2"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List shell files
+        id: list_files
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=( $(git ls-files '*.sh') )
+          printf '%s\n' "${files[@]-}" > shell_files.txt
+          echo "count=$(wc -l < shell_files.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Show planned files
+        run: |
+          echo "Files (count=${{ steps.list_files.outputs.count }}):"
+          cat shell_files.txt || true
+
+      - name: Syntax check in bash:${{ matrix.bash }}
+        if: steps.list_files.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          docker pull bash:${{ matrix.bash }}
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace:ro" \
+            -w /workspace \
+            bash:${{ matrix.bash }} bash -lc '
+              set -euo pipefail
+              rc=0
+              while IFS= read -r f; do
+                echo "Checking syntax with bash -n: $f"
+                bash -n "$f" || rc=$?
+              done < shell_files.txt
+              exit $rc
+            '
+
+  windows-bash:
+    name: Bash syntax (Windows)
+    if: startsWith(github.ref, 'refs/heads/')
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List shell files
+        id: list_files
+        run: |
+          set -euo pipefail
+          git ls-files '*.sh' > shell_files.txt || true
+          echo "count=$(wc -l < shell_files.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Show bash version
+        run: bash --version
+
+      - name: Syntax check with Git-Bash
+        if: steps.list_files.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          rc=0
+          while IFS= read -r f; do
+            echo "Checking syntax with bash -n: $f"
+            bash -n "$f" || rc=$?
+          done < shell_files.txt
+          exit $rc
+
+  auto-tag:
+    name: Auto tag on main
+    needs: [linux-bash-matrix, linux-distros-matrix, windows-bash]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine bump from commit messages
+        id: bump
+        run: |
+          set -euo pipefail
+          git fetch --tags --quiet
+          # Find latest semver tag vX.Y.Z
+          last_tag=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1 || true)
+          echo "Last tag: ${last_tag:-<none>}"
+          range="${last_tag}..HEAD"
+          if [ -z "${last_tag}" ]; then
+            # No tags yet; inspect last 50 commits as a baseline
+            log=$(git log -n 50 --pretty=%B)
+          else
+            log=$(git log "$range" --pretty=%B || true)
+          fi
+          echo "---- Commit messages considered ----"
+          printf '%s\n' "$log"
+          echo "------------------------------------"
+          bump="patch"
+          shopt -s nocasematch
+          if echo "$log" | grep -Eiq '\[(major|breaking)\]|#major|#breaking|!:'; then
+            bump="major"
+          elif echo "$log" | grep -Eiq '\[(minor|feat)\]|#minor'; then
+            bump="minor"
+          elif echo "$log" | grep -Eiq '\[(patch|fix|chore)\]|#patch'; then
+            bump="patch"
+          fi
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+      - name: Compute next version and tag
+        id: version
+        run: |
+          set -euo pipefail
+          bump='${{ steps.bump.outputs.bump }}'
+          last_tag=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1 || true)
+          if [ -z "$last_tag" ]; then
+            major=0; minor=0; patch=0
+          else
+            v=${last_tag#v}
+            IFS='.' read -r major minor patch <<< "$v"
+          fi
+          case "$bump" in
+            major) major=$((major+1)); minor=0; patch=0 ;;
+            minor) minor=$((minor+1)); patch=0 ;;
+            patch) patch=$((patch+1)) ;;
+          esac
+          new_tag="v${major}.${minor}.${patch}"
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "last_tag=${last_tag}" >> "$GITHUB_OUTPUT"
+          echo "Bump: $bump -> $new_tag"
+
+      - name: Create and push tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          new_tag='${{ steps.version.outputs.new_tag }}'
+          last_tag='${{ steps.version.outputs.last_tag }}'
+          # Avoid re-tagging if tag already exists (race-safety)
+          if git rev-parse -q --verify "refs/tags/${new_tag}" >/dev/null; then
+            echo "Tag ${new_tag} already exists, skipping."
+            exit 0
+          fi
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git tag -a "$new_tag" -m "Auto tag: $new_tag"
+          git push origin "$new_tag"
+
+  release:
+    name: Create GitHub Release
+    # Triggered when a tag is pushed matching v*
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
