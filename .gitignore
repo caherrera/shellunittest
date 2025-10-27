@@ -1,0 +1,14 @@
+# Test result files
+test-results*.json
+test-results*.xml
+test-results*.yaml
+test-results*.csv
+
+# Backup files
+*~
+*.bak
+
+# Temporary files
+*.tmp
+*.swp
+.DS_Store

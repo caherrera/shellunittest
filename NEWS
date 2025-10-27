@@ -1,0 +1,51 @@
+NEWS
+====
+
+Shell Unit Test Framework - Release Notes
+
+Version 1.0.0 (2025-10-27)
+--------------------------
+
+This is the initial release of the Shell Unit Test Framework, a comprehensive
+testing solution for Bash shell scripts.
+
+Key Features:
+
+  * Cross-Platform Support
+    - Works seamlessly on both Linux and macOS
+    - Automatic detection and validation of GNU tools
+    - Platform-specific tool selection (ggrep/grep, gsed/sed)
+
+  * Rich Testing Capabilities
+    - Seven different assertion functions
+    - String comparison and containment tests
+    - File existence and content validation
+    - Exit code checking
+    - Millisecond-precision performance tracking
+
+  * Multiple Output Formats
+    - Human-readable console output with colors
+    - JSON for programmatic processing
+    - YAML for configuration management
+    - CSV for spreadsheet analysis
+    - JUnit XML for CI/CD integration (Jenkins, GitLab CI, etc.)
+
+  * CI/CD Integration
+    - Quiet mode for machine-readable output
+    - Proper exit codes for automation
+    - Automatic output file generation
+    - Environment variable configuration
+
+  * Developer Experience
+    - Easy-to-use assertion functions
+    - Comprehensive error messages
+    - Organized test output with sections
+    - Detailed documentation and examples
+
+This framework is designed to make shell script testing as simple and
+powerful as possible, while maintaining compatibility with existing
+CI/CD systems and development workflows.
+
+For installation instructions, see the INSTALL file.
+For usage examples and API reference, see the README.md file.
+

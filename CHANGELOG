@@ -1,0 +1,64 @@
+CHANGELOG
+=========
+
+All notable changes to the Shell Unit Test Framework will be documented in this file.
+
+## [1.0.0] - 2025-10-27
+
+### Added
+- Initial release of Shell Unit Test Framework
+- Cross-platform support for Linux and macOS
+- Automatic OS detection and GNU tools validation
+- Rich assertion library:
+  * assert_equals - Test value equality
+  * assert_contains - Test string containment
+  * assert_file_contains - Test file content
+  * assert_file_not_contains - Test file content absence
+  * assert_file_exists - Test file existence
+  * assert_success - Test command success
+  * assert_exit_code - Test specific exit codes
+- Multiple output formats:
+  * Console output with colors (default)
+  * JSON format
+  * YAML format
+  * CSV format
+  * JUnit XML format
+- Test result recording and tracking
+- Performance timing with millisecond precision
+- Quiet mode for CI/CD integration
+- Command-line options:
+  * --format for output format selection
+  * --output for custom output file
+  * --quiet for suppressing console output
+- Environment variable support:
+  * TEST_OUTPUT_FORMAT
+  * TEST_QUIET_MODE
+- Comprehensive documentation
+- Installation guide
+- Usage examples
+
+### Features
+- Colored console output for better readability
+- Automatic output filename generation
+- Test suite organization with headers and sections
+- Detailed error messages with context
+- Exit code handling for CI/CD systems
+- JSON escaping for safe output
+- XML escaping for JUnit format
+- Timestamp support in ISO 8601 format
+- Epoch millisecond timing for performance measurement
+
+### Platform Support
+- macOS (Darwin) with GNU tools detection
+- Linux with standard tools
+- Automatic fallback for GNU utilities on macOS
+- Cross-platform path handling
+
+### Documentation
+- Complete README with examples
+- Installation instructions (INSTALL)
+- API reference
+- Best practices guide
+- Troubleshooting section
+- Platform-specific notes
+

@@ -1,0 +1,15 @@
+AUTHORS
+=======
+
+Shell Unit Test Framework
+
+This framework was developed to provide a comprehensive, portable testing
+solution for Bash shell scripts with support for multiple output formats
+and cross-platform compatibility.
+
+Main Contributors:
+  Carlos Herrera
+
+The framework incorporates best practices from various testing frameworks
+and the GNU coding standards.
+

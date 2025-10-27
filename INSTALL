@@ -1,0 +1,113 @@
+INSTALLATION INSTRUCTIONS
+=========================
+
+Shell Unit Test Framework - Installation Guide
+
+REQUIREMENTS
+------------
+
+Required:
+  * Bash 4.0 or later
+  * GNU grep (standard on Linux, 'brew install grep' on macOS)
+  * GNU sed (standard on Linux, 'brew install gnu-sed' on macOS)
+
+Optional (for specific output formats):
+  * jq - for JSON, CSV, and JUnit XML output
+  * yq - for YAML and JUnit XML output
+
+BASIC INSTALLATION
+------------------
+
+1. Copy the shellunittest directory to your project:
+
+   cp -r shellunittest /path/to/your/project/
+
+2. Source the framework in your test scripts:
+
+   #!/usr/bin/env bash
+   source ./shellunittest/unittest.sh
+   initialize_test_framework "$@"
+
+3. Write your tests and run them:
+
+   chmod +x your_test.sh
+   ./your_test.sh
+
+SYSTEM-WIDE INSTALLATION
+------------------------
+
+To install system-wide (optional):
+
+1. Copy to a system location:
+
+   sudo mkdir -p /usr/local/share/shellunittest
+   sudo cp unittest.sh /usr/local/share/shellunittest/
+
+2. Source from the system location in your test scripts:
+
+   source /usr/local/share/shellunittest/unittest.sh
+
+MACOS-SPECIFIC INSTALLATION
+---------------------------
+
+On macOS, you must install GNU utilities via Homebrew:
+
+1. Install Homebrew (if not already installed):
+
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+2. Install required GNU utilities:
+
+   brew install grep gnu-sed
+
+3. Install optional dependencies:
+
+   brew install jq yq
+
+LINUX-SPECIFIC INSTALLATION
+---------------------------
+
+On most Linux distributions, grep and sed are already available.
+Install optional dependencies:
+
+Debian/Ubuntu:
+  sudo apt-get install jq
+  pip install yq
+
+RHEL/CentOS/Fedora:
+  sudo yum install jq
+  pip install yq
+
+Arch Linux:
+  sudo pacman -S jq
+  pip install yq
+
+VERIFICATION
+------------
+
+After installation, verify that all dependencies are available:
+
+  ./unittest.sh --help
+
+Or create a simple test script to verify:
+
+  #!/usr/bin/env bash
+  source ./shellunittest/unittest.sh
+  initialize_test_framework "$@"
+  
+  print_test_header "Verification Test"
+  assert_equals "test" "test" "Framework is working"
+  print_summary
+
+TROUBLESHOOTING
+---------------
+
+If you encounter errors about missing commands:
+
+* "GNU grep is not installed" - Run: brew install grep (macOS)
+* "GNU sed is not installed" - Run: brew install gnu-sed (macOS)
+* JSON output fails - Install jq
+* YAML output fails - Install yq
+
+For more information, see README.md.
+
