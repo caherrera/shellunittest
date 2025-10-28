@@ -18,8 +18,8 @@
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source the testing framework
-source "${SCRIPT_DIR}/unittest.sh"
+# Source the testing framework (relative to repo root: src/unittest.sh)
+source "${SCRIPT_DIR}/../src/unittest.sh"
 
 # Initialize the framework with command-line arguments
 initialize_test_framework "$@"
@@ -145,4 +145,3 @@ assert_equals "hello" "$result" "Pipeline should convert to lowercase"
 # This will print the summary and exit with appropriate code
 # Exit code 0 if all tests passed, 1 if any failed
 print_summary
-

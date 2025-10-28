@@ -2,14 +2,20 @@
 # Follows GNU Makefile conventions
 
 # Installation directories
-PREFIX = /usr/local
+# PREFIX is the runtime prefix (used in paths embedded into wrappers)
+PREFIX ?= /usr/local
+# DESTDIR is a staging prefix for packaging (left empty in normal installs)
+DESTDIR ?=
+
 DATADIR = $(PREFIX)/share
 DOCDIR = $(DATADIR)/doc/shellunittest
-LIBDIR = $(DATADIR)/shellunittest
+LIBEXECDIR = $(PREFIX)/libexec
+LIBDIR = $(LIBEXECDIR)/shellunittest
+BINDIR = $(PREFIX)/bin
 
 # Source files
-FRAMEWORK_SRC = unittest.sh
-EXAMPLE_SRC = example_test.sh
+FRAMEWORK_SRC = src/unittest.sh
+EXAMPLE_SRC = examples/example_test.sh
 DOC_FILES = README.md INSTALL AUTHORS CHANGELOG NEWS
 
 # Phony targets
@@ -48,28 +54,36 @@ test-junit:
 	@echo ""
 	@echo "JUnit XML output written to test-results.xml"
 
-# Install system-wide
+# Install system-wide (supports DESTDIR for packaging)
 install:
-	@echo "Installing Shell Unit Test Framework to $(PREFIX)..."
-	install -d $(LIBDIR)
-	install -d $(DOCDIR)
-	install -m 0755 $(FRAMEWORK_SRC) $(LIBDIR)/
-	install -m 0755 $(EXAMPLE_SRC) $(LIBDIR)/
-	install -m 0644 $(DOC_FILES) $(DOCDIR)/
-	@echo ""
-	@echo "Installation complete!"
-	@echo ""
-	@echo "To use the framework in your test scripts:"
-	@echo "  source $(LIBDIR)/unittest.sh"
-	@echo ""
-	@echo "Documentation installed to: $(DOCDIR)"
+    @echo "Installing Shell Unit Test Framework to $(DESTDIR)$(PREFIX)..."
+    install -d $(DESTDIR)$(LIBDIR)
+    install -d $(DESTDIR)$(DOCDIR)
+    install -d $(DESTDIR)$(BINDIR)
+    install -m 0755 $(FRAMEWORK_SRC) $(DESTDIR)$(LIBDIR)/
+    install -m 0755 $(EXAMPLE_SRC) $(DESTDIR)$(LIBDIR)/
+    install -m 0644 $(DOC_FILES) $(DESTDIR)$(DOCDIR)/
+    # Install a small wrapper into bin that executes the runtime libexec script
+    printf "#!/usr/bin/env bash\nexec \"%s\" \"\$@\"\n" "$(LIBDIR)/unittest.sh" > $(DESTDIR)$(BINDIR)/unittest
+    chmod 0755 $(DESTDIR)$(BINDIR)/unittest
+    @echo ""
+    @echo "Installation complete!"
+    @echo ""
+    @echo "You can now run:"
+    @echo "  unittest"
+    @echo ""
+    @echo "Or source directly in your scripts:"
+    @echo "  source $(LIBDIR)/unittest.sh"
+    @echo ""
+    @echo "Documentation installed to: $(DOCDIR)"
 
 # Uninstall
 uninstall:
-	@echo "Uninstalling Shell Unit Test Framework..."
-	rm -rf $(LIBDIR)
-	rm -rf $(DOCDIR)
-	@echo "Uninstallation complete!"
+    @echo "Uninstalling Shell Unit Test Framework from $(DESTDIR)$(PREFIX)..."
+    rm -f $(DESTDIR)$(BINDIR)/unittest
+    rm -rf $(DESTDIR)$(LIBDIR)
+    rm -rf $(DESTDIR)$(DOCDIR)
+    @echo "Uninstallation complete!"
 
 # Clean generated files
 clean:
@@ -85,7 +99,7 @@ distclean: clean
 
 # Show help
 help:
-	@echo "Shell Unit Test Framework - Makefile targets:"
+    @echo "Shell Unit Test Framework - Makefile targets:"
 	@echo ""
 	@echo "  make                 - Default target (same as 'make check')"
 	@echo "  make check           - Run example tests"
@@ -93,16 +107,19 @@ help:
 	@echo "  make example         - Run example tests"
 	@echo "  make test-json       - Run tests with JSON output"
 	@echo "  make test-junit      - Run tests with JUnit XML output"
-	@echo "  make install         - Install system-wide (may require sudo)"
-	@echo "  make uninstall       - Remove system-wide installation"
+    @echo "  make install         - Install system-wide (supports DESTDIR)"
+    @echo "  make uninstall       - Remove system-wide installation"
 	@echo "  make clean           - Remove generated test result files"
 	@echo "  make distclean       - Remove all generated and backup files"
 	@echo "  make help            - Show this help message"
 	@echo ""
 	@echo "Installation directories (can be overridden):"
 	@echo "  PREFIX = $(PREFIX)"
-	@echo "  LIBDIR = $(LIBDIR)"
-	@echo "  DOCDIR = $(DOCDIR)"
-	@echo ""
-	@echo "Example: make install PREFIX=/opt/local"
-
+    @echo "  BINDIR = $(BINDIR)"
+    @echo "  LIBDIR = $(LIBDIR)"
+    @echo "  DOCDIR = $(DOCDIR)"
+    @echo ""
+    @echo "Supports DESTDIR for packaging (e.g., Homebrew/Linuxbrew)."
+    @echo "Examples:"
+    @echo "  make install PREFIX=/opt/local"
+    @echo "  make install DESTDIR=/tmp/stage"
